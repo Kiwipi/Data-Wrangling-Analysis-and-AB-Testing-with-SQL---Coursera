@@ -1,0 +1,41 @@
+Exercise 0: Count how many users we have
+
+    SELECT COUNT(DISTINCT id) AS users_num
+    FROM dsv1069.users
+
+
+Exercise 1: Find out how many users have ever ordered
+
+SELECT COUNT(DISTINCT users.id) AS users_num_have_ordered
+FROM dsv1069.users
+JOIN dsv1069.orders
+ON users.id = orders.user_id
+
+
+Exercise 2:
+--Goal find how many users have reordered the same item
+
+    SELECT COUNT(DISTINCT user_id) AS users_num_who_have_reordered
+    FROM 
+        (
+        SELECT user_id, item_id, item_category, COUNT(DISTINCT line_item_id) AS times_ordered
+        FROM dsv1069.orders
+        GROUP BY  user_id, item_id, item_category
+        ) times_ordered_table
+    WHERE times_ordered_table.times_ordered >1
+
+Exercise 3:
+--Do users even order more than once?
+
+    SELECT COUNT(user_id) AS users_num_ordered_multiple_times
+    FROM 
+        (
+        SELECT user_id, COUNT(DISTINCT invoice_id) AS order_num
+        FROM dsv1069.orders
+        GROUP BY user_id
+        ) order_num_table
+    WHERE order_num_table.order_num >1
+
+
+Exercise 4:
+--Orders per item
