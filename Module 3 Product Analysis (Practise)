@@ -74,3 +74,24 @@ Exercise 7:
 --Goal: Find the average time between orders
 --Decide if this analysis is necessary
 
+        The result shows there is no consistant patern of days difference, so I think there is no need to investigate further the dataset.
+        SELECT 
+        first_order_table.user_id,
+        DATE(first_order_table.paid_at) AS first_paid,
+        DATE(second_order_table.paid_at) AS second_paid,
+        DATE(second_order_table.paid_at) - DATE(first_order_table.paid_at) AS different_days
+        FROM 
+            (
+            SELECT user_id, invoice_id, paid_at, DENSE_RANK() OVER (PARTITION BY user_id ORDER BY paid_at ) as order_num
+            FROM dsv1069.orders
+            ) first_order_table
+            JOIN 
+            (
+            SELECT user_id, invoice_id, paid_at, DENSE_RANK() OVER (PARTITION BY user_id ORDER BY paid_at ) as order_num
+            FROM dsv1069.orders
+            ) second_order_table
+        ON first_order_table.user_id =  second_order_table.user_id 
+        WHERE second_order_table.order_num =2
+        AND first_order_table.order_num=1
+
+
