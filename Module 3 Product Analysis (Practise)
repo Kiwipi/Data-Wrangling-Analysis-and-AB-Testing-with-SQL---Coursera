@@ -39,3 +39,38 @@ Exercise 3:
 
 Exercise 4:
 --Orders per item
+
+        SELECT item_id, COUNT(DISTINCT line_item_id) AS order_times
+        FROM dsv1069.orders
+        GROUP BY item_id
+        ORDER BY order_times DESC
+
+Exercise 5:
+--Orders per category
+
+        SELECT DISTINCT item_category, COUNT(item_category) AS category_items
+        FROM dsv1069.orders
+        GROUP BY item_category
+        ORDER BY category_items DESC
+
+Exercise 6:
+--Goal: Do user order multiple things from the same category?
+
+        Yes, there are total AVERAGE more than 1300 users have ordered multiple things from the same category, average 3 items have been ordered in the same catagory:
+
+        SELECT 
+        item_category, COUNT(DISTINCT user_id) AS users_num, AVG(line_item_category_table.line_items_ordered) AS avg_ordered_times_per_category
+        FROM 
+            (
+            SELECT user_id, item_category, COUNT(DISTINCT line_item_id) AS line_items_ordered
+            FROM dsv1069.orders
+            GROUP BY user_id, item_category
+            )  line_item_category_table
+        WHERE line_item_category_table.line_items_ordered >1 
+        GROUP BY item_category
+
+
+Exercise 7:
+--Goal: Find the average time between orders
+--Decide if this analysis is necessary
+
