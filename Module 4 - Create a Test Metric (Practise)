@@ -40,3 +40,46 @@ Exercise 1:
         test_assignment_table.user_id,
         test_assignment_table.test_assignment,
         test_assignment_table.test_id
+
+Exercise 2:
+--Using the table from the previous exercise, add the following metrics
+--1) the number of orders/invoices
+--2) the number of items/line-items ordered
+--3) the total revenue from the order after treatment
+
+    SELECT 
+        test_assignment_table.user_id,
+        test_assignment_table.test_assignment,
+        test_assignment_table.test_id,
+        COUNT (DISTINCT (CASE WHEN test_assignment_table.event_time < orders.paid_at THEN invoice_id ELSE NULL END)) AS invoice_after_assig,
+        COUNT (DISTINCT (CASE WHEN test_assignment_table.event_time < orders.paid_at THEN line_item_id ELSE NULL END))AS line_items_after_assig,
+        SUM ((CASE WHEN test_assignment_table.event_time < orders.paid_at THEN price ELSE 0 END)) AS total_revenue_after_assig
+    FROM 
+    (
+        SELECT 
+            event_id, 
+            event_name,
+            event_time,
+            MAX(CASE WHEN parameter_name = 'test_assignment' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_assignment, 
+            MAX(CASE WHEN parameter_name = 'test_id' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_id, 
+            platform,
+            user_id
+        FROM     
+            dsv1069.events
+        WHERE 
+            event_name= 'test_assignment'
+        GROUP BY 
+            event_id, 
+            event_name,
+            event_time,
+            platform,
+            user_id
+    ) test_assignment_table
+    LEFT JOIN 
+        dsv1069.orders
+    ON 
+        orders.user_id = test_assignment_table.user_id
+    GROUP BY 
+        test_assignment_table.user_id,
+        test_assignment_table.test_assignment,
+        test_assignment_table.test_id
