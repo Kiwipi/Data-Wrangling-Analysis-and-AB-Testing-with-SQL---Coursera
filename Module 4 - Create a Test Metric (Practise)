@@ -4,3 +4,39 @@ Exercise 1:
 --Requirements: Even if a user had zero orders, we should have a row that counts
 -- their number of orders as zero
 --If the user is not in the experiment they should not be included
+
+    SELECT 
+        test_assignment_table.user_id,
+        test_assignment_table.test_assignment,
+        test_assignment_table.test_id,
+        MAX (CASE WHEN test_assignment_table.event_time < orders.paid_at THEN invoice_id ELSE NULL END ) AS invoice_id,
+        MAX (CASE WHEN test_assignment_table.event_time < orders.paid_at THEN 1 ELSE 0 END ) AS ordered_after_assignment_binary
+    FROM 
+    (
+        SELECT 
+            event_id, 
+            event_name,
+            event_time,
+            MAX(CASE WHEN parameter_name = 'test_assignment' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_assignment, 
+            MAX(CASE WHEN parameter_name = 'test_id' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_id, 
+            platform,
+            user_id
+        FROM     
+            dsv1069.events
+        WHERE 
+            event_name= 'test_assignment'
+        GROUP BY 
+            event_id, 
+            event_name,
+            event_time,
+            platform,
+            user_id
+    ) test_assignment_table
+    LEFT JOIN 
+        dsv1069.orders
+    ON 
+        orders.user_id = test_assignment_table.user_id
+    GROUP BY 
+        test_assignment_table.user_id,
+        test_assignment_table.test_assignment,
+        test_assignment_table.test_id
