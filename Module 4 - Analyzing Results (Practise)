@@ -1,13 +1,105 @@
 Exercise 1: Use the order_binary metric from the previous exercise, count the number of users per treatment group for test_id = 7, 
 and count the number of users with orders (for test_id 7)
 
-
+    SELECT 
+        test_assignment,
+        COUNT(user_id) AS users,
+        SUM(ordered_after_assignment_binary) AS users_with_orders
+    FROM 
+     (
+         SELECT 
+            test_assignment_table.user_id,
+            test_assignment_table.test_assignment,
+            test_assignment_table.test_id,
+            MAX (CASE WHEN test_assignment_table.event_time < orders.paid_at THEN 1 ELSE 0 END ) AS ordered_after_assignment_binary
+          FROM 
+            (
+               SELECT 
+                  event_id, 
+                  event_name,
+                  event_time,
+                  MAX(CASE WHEN parameter_name = 'test_assignment' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_assignment, 
+                  MAX(CASE WHEN parameter_name = 'test_id' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_id, 
+                  platform,
+                  user_id
+                FROM     
+                    dsv1069.events
+                WHERE 
+                    event_name= 'test_assignment'
+                GROUP BY 
+                    event_id, 
+                    event_name,
+                    event_time,
+                    platform,
+                    user_id
+             ) test_assignment_table
+          LEFT JOIN 
+              dsv1069.orders
+          ON 
+              orders.user_id = test_assignment_table.user_id
+          GROUP BY 
+              test_assignment_table.user_id,
+              test_assignment_table.test_assignment,
+              test_assignment_table.test_id
+          ) order_binary 
+    WHERE test_id =7 
+    GROUP BY test_assignment
 
 Exercise 2: Create a new tem view binary metric. Count the number of users per treatment group, and count the number of users with views (for test_id 7)
 
+    SELECT 
+        test_assignment,
+        COUNT(user_id) AS users,
+        SUM(view_binary) AS item_viewed_orders
+    FROM 
+     (
+         SELECT 
+            test_assignment_table.user_id,
+            test_assignment_table.test_assignment,
+            test_assignment_table.test_id,
+            MAX (CASE WHEN test_assignment_table.event_time < view_item_events_table.event_time THEN 1 ELSE 0 END ) AS view_binary
+          FROM 
+            (
+               SELECT 
+                  event_id, 
+                  event_name,
+                  event_time,
+                  MAX(CASE WHEN parameter_name = 'test_assignment' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_assignment, 
+                  MAX(CASE WHEN parameter_name = 'test_id' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_id, 
+                  platform,
+                  user_id
+                FROM     
+                    dsv1069.events
+                WHERE 
+                    event_name= 'test_assignment'
+                GROUP BY 
+                    event_id, 
+                    event_name,
+                    event_time,
+                    platform,
+                    user_id
+             ) test_assignment_table
+          LEFT JOIN 
+              ( 
+              SELECT *
+              FROM dsv1069.events
+              WHERE event_name ='view_item'
+              ) view_item_events_table
+          ON 
+              view_item_events_table.user_id = test_assignment_table.user_id
+          GROUP BY 
+              test_assignment_table.user_id,
+              test_assignment_table.test_assignment,
+              test_assignment_table.test_id
+          ) item_view_binary 
+    WHERE test_id =7 
+    GROUP BY test_assignment
 
-
-Exercise 3: Alter the result from EX 2, to compute the users who viewed an item WITHIN 30 days of their treatment event
+Results: 
+The P-Value is 0.463 Hence, your results are not statistically significant!
+0	19376	10290
+1	19271	10271
+=atment event
 
 
 Exercise 4:
