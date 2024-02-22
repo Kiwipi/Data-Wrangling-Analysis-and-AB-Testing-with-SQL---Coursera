@@ -37,8 +37,10 @@ Orders completed
 Total orders placed
 Revenue 
 
+------------------------------------------------------------------------
 
 Exercise 1: Figure out how many tests we have running right now
+
   SELECT 
       COUNT(DISTINCT parameter_value) AS tests
   FROM 
@@ -47,6 +49,7 @@ Exercise 1: Figure out how many tests we have running right now
       event_name= 'test_assignment'
   AND 
       parameter_name = 'test_id'
+Results: Total 4 tests running now.
 
 Exercise 2: Check for potential problems with test assignments. For example Make sure there is no data obviously missing (This is an open ended question)
 
