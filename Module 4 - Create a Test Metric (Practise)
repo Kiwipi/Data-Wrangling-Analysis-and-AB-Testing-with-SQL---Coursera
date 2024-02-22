@@ -5,41 +5,35 @@ Exercise 1:
 -- their number of orders as zero
 --If the user is not in the experiment they should not be included
 
-    SELECT 
-        test_assignment_table.user_id,
-        test_assignment_table.test_assignment,
-        test_assignment_table.test_id,
-        MAX (CASE WHEN test_assignment_table.event_time < orders.paid_at THEN invoice_id ELSE NULL END ) AS invoice_id,
-        MAX (CASE WHEN test_assignment_table.event_time < orders.paid_at THEN 1 ELSE 0 END ) AS ordered_after_assignment_binary
-    FROM 
-    (
         SELECT 
-            event_id, 
-            event_name,
-            event_time,
-            MAX(CASE WHEN parameter_name = 'test_assignment' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_assignment, 
-            MAX(CASE WHEN parameter_name = 'test_id' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_id, 
-            platform,
+            test_assignment.user_id,
+            test_id, 
+            test_assignment,
+            MAX(CASE WHEN orders.paid_at > event_time THEN invoice_id ELSE NULL END ) AS invoice_id,
+            MAX(CASE WHEN orders.paid_at > event_time THEN 1 ELSE 0 END ) AS orders_after_binary
+        FROM 
+            (
+            SELECT 
+            event_id,
+            event_time, 
+            MAX(CASE WHEN parameter_name = 'test_id' THEN CAST (parameter_value AS INT) ELSE NULL END ) AS test_id,
+            MAX(CASE WHEN parameter_name = 'test_assignment' THEN parameter_value ELSE NULL END ) AS test_assignment,
             user_id
-        FROM     
-            dsv1069.events
-        WHERE 
-            event_name= 'test_assignment'
+            FROM dsv1069.events 
+            WHERE event_name = 'test_assignment'
+            GROUP BY 
+            event_id,
+            event_time, 
+            user_id
+            ) test_assignment
+        LEFT JOIN 
+            dsv1069.orders
+        ON 
+            orders.user_id = test_assignment.user_id 
         GROUP BY 
-            event_id, 
-            event_name,
-            event_time,
-            platform,
-            user_id
-    ) test_assignment_table
-    LEFT JOIN 
-        dsv1069.orders
-    ON 
-        orders.user_id = test_assignment_table.user_id
-    GROUP BY 
-        test_assignment_table.user_id,
-        test_assignment_table.test_assignment,
-        test_assignment_table.test_id
+            test_assignment.user_id,
+            test_id, 
+            test_assignment
 
 Exercise 2:
 --Using the table from the previous exercise, add the following metrics
@@ -48,51 +42,32 @@ Exercise 2:
 --3) the total revenue from the order after treatment
 
         SELECT 
-            test_assignment, 
-            COUNT (user_id) AS total_users,
-            SUM(ordered_after_assignment_binary) AS users_with_orders
+            test_assignment.user_id,
+            test_id, 
+            test_assignment,
+            COUNT (DISTINCT (CASE WHEN orders.paid_at > event_time THEN invoice_id ELSE NULL END )) AS invoice_ordered,
+            COUNT(DISTINCT (CASE WHEN orders.paid_at > event_time THEN line_item_id ELSE NULL END )) AS line_items_ordered, 
+            SUM (CASE WHEN orders.paid_at > event_time THEN price ELSE 0 END ) total_revenue
         FROM 
-        (
-            SELECT 
-                test_assignment_table.user_id,
-                test_assignment_table.test_assignment,
-                test_assignment_table.test_id,
-                MAX (CASE WHEN test_assignment_table.event_time < orders.paid_at THEN 1 ELSE 0 END ) AS ordered_after_assignment_binary
-            FROM 
             (
-                SELECT 
-                    event_id, 
-                    event_name,
-                    event_time,
-                    MAX(CASE WHEN parameter_name = 'test_assignment' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_assignment, 
-                    MAX(CASE WHEN parameter_name = 'test_id' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_id, 
-                    platform,
-                    user_id
-                FROM     
-                    dsv1069.events
-                WHERE 
-                    event_name= 'test_assignment'
-                GROUP BY 
-                    event_id, 
-                    event_name,
-                    event_time,
-                    platform,
-                    user_id
-            ) test_assignment_table
-            LEFT JOIN 
-                dsv1069.orders
-            ON 
-                orders.user_id = test_assignment_table.user_id
+            SELECT 
+            event_id,
+            event_time, 
+            MAX(CASE WHEN parameter_name = 'test_id' THEN CAST (parameter_value AS INT) ELSE NULL END ) AS test_id,
+            MAX(CASE WHEN parameter_name = 'test_assignment' THEN parameter_value ELSE NULL END ) AS test_assignment,
+            user_id
+            FROM dsv1069.events 
+            WHERE event_name = 'test_assignment'
             GROUP BY 
-                test_assignment_table.user_id,
-                test_assignment_table.test_assignment,
-                test_assignment_table.test_id
-        ) user_level
-        WHERE test_id =7
-        GROUP BY test_assignment
-
-Results: 
-0	19376	2522
-1	19271	2634
-
-The P-Value is 0.03 Hence, your results are statistically significant!
+            event_id,
+            event_time, 
+            user_id
+            ) test_assignment
+        LEFT JOIN 
+            dsv1069.orders
+        ON 
+            orders.user_id = test_assignment.user_id 
+        GROUP BY 
+            test_assignment.user_id,
+            test_id, 
+            test_assignment
