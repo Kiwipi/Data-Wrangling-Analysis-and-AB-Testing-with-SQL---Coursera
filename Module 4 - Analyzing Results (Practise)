@@ -103,20 +103,21 @@ The P-Value is 0.463 Hence, your results are NOT statistically significant!
 Exercise 3: Alter the result from EX 2, to compute the users who viewed an item WITHIN 30
 days of their treatment event
 
-    SELECT 
-    test_assignment,
-    COUNT(DISTINCT user_id) AS users,
-    SUM(view_30d) as view_under_30d
-    FROM 
-            (
-            SELECT 
-                test_assignment.user_id,
-                test_id, 
-                test_assignment,
-                MAX(CASE WHEN test_assignment.event_time < view_item_table.event_time THEN 1 ELSE 0 END ) AS view_after_binary,
-                MAX(CASE WHEN test_assignment.event_time < view_item_table.event_time AND 
-                              DATE_PART ('day', view_item_table.event_time- test_assignment.event_time) <=30
-                    THEN 1 ELSE 0 END ) AS view_30d
+                SELECT 
+                        test_assignment,
+                        COUNT(user_id) AS users,
+                        SUM (view_after_binary) AS users_with_views,
+                        SUM (view_within_30d) AS users_with_views_winth_30d
+                FROM
+                (
+                        SELECT 
+                            test_assignment.user_id,
+                            test_id, 
+                            test_assignment,
+                            MAX(CASE WHEN view_item_table.event_time > test_assignment.event_time THEN 1 ELSE 0 END ) AS view_after_binary,
+                            MAX(CASE WHEN view_item_table.event_time > test_assignment.event_time AND 
+                                          DATE_PART ('day', view_item_table.event_time - test_assignment.event_time) <=30
+                                          THEN 1 ELSE 0 END ) AS view_within_30d
             FROM 
                 (
                 SELECT 
@@ -150,7 +151,10 @@ days of their treatment event
     GROUP BY 
         test_assignment
 
-
+Results:
+The P-Value is 0.38 Hence, your results are not statistically significant!
+0	19376	10290	245
+1	19271	10271	237
 
 
 Exercise 4:
