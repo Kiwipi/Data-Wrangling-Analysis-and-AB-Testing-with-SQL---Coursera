@@ -162,3 +162,52 @@ Create the metric invoices (this is a mean metric, not a binary metric) and for 
 ----The count of users per treatment group
 ----The average value of the metric per treatment group
 ----The standard deviation of the metric per treatment group
+
+        SELECT 
+        test_assignment,
+        COUNT(DISTINCT user_id) AS users,
+        SUM (invoices_count) AS total_invoices, 
+        AVG(invoices_count) AS avg_orders,
+        STDDEV_SAMP (invoices_count) AS std_orders_sam
+        FROM 
+        (   
+            SELECT 
+                test_assignment_table.user_id,
+                test_assignment_table.test_assignment,
+                test_assignment_table.test_id,
+                COUNT (DISTINCT (CASE WHEN test_assignment_table.event_time < orders.paid_at THEN orders.invoice_id ELSE NULL END)) AS invoices_count
+            FROM 
+            (
+                SELECT 
+                    event_id, 
+                    event_name,
+                    event_time,
+                    MAX(CASE WHEN parameter_name = 'test_assignment' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_assignment, 
+                    MAX(CASE WHEN parameter_name = 'test_id' THEN CAST (parameter_value AS INT ) ELSE NULL END)  AS test_id, 
+                    platform,
+                    user_id
+                FROM     
+                    dsv1069.events
+                WHERE 
+                    event_name= 'test_assignment'
+                GROUP BY 
+                    event_id, 
+                    event_name,
+                    event_time,
+                    platform,
+                    user_id
+            ) test_assignment_table
+            LEFT JOIN 
+                dsv1069.orders
+            ON 
+                orders.user_id = test_assignment_table.user_id
+            GROUP BY 
+                test_assignment_table.user_id,
+                test_assignment_table.test_assignment,
+                test_assignment_table.test_id
+        ) invoice_count_table
+        WHERE 
+            test_id = 7
+        GROUP BY 
+            test_assignment,
+            test_id
