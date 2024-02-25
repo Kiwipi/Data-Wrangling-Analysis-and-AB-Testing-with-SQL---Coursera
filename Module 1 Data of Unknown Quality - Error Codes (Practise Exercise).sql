@@ -2,9 +2,12 @@ Exercise 1:
 Goal: Here we use users table to pull a list of user email addresses. Edit the query to pull email
 addresses, but only for non-deleted users.
     
-    SELECT id, email_address
-    FROM dsv1069.users
-    WHERE deleted_at IS NULL;
+    SELECT 
+        id, email_address
+    FROM 
+        dsv1069.users
+    WHERE 
+        deleted_at IS NULL;
 
 
 
@@ -12,9 +15,12 @@ Exercise 2:
 --Goal: Use the items table to count the number of items for sale in each category
 Starter Code: (none)
 
-    SELECT category, count(id) AS sold_item_num
-    FROM dsv1069.items
-    GROUP BY category
+    SELECT 
+        category, count(id) AS sold_item_num
+    FROM 
+        dsv1069.items
+    GROUP BY 
+        category
 
 
 
