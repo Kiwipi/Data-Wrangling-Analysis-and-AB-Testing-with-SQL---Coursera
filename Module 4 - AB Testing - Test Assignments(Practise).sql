@@ -1,15 +1,10 @@
 AB TESTING 
 
 # Case Study 1  - User Welcome Email
-
 Goals -  update the designs to include images and links to our top selling items
-
 Eligibility - users who’ve created an account recently with a valid email address
-
 Diversion point - when the automated email is scheduled to be sent
-
 Control - Get the existing emails
-
 Treatment - Get new email with images top sellers
 
 Engagement Metrics:
@@ -20,13 +15,9 @@ Total number of orders placed
 Revenue 
 
 # Case Study 2 - Push Notification to Mobile Users
-
 Goals - Push notification to users with items in their carts, have not completed order after 24 hours, only if they haven’t received a push notification in last 2 weeks
-
 Eligibility - User with a view_item event on a mobile device, who have added items to their carts in the last 24 hours, but havn't received any recent push notifications.
-
 Control - No push notification
-
 Treament - Personalised push about items in the cart
 
 Engagement Metrics:
@@ -37,7 +28,6 @@ Orders completed
 Total orders placed
 Revenue 
 
-------------------------------------------------------------------------
 
 Exercise 1: Figure out how many tests we have running right now
 
@@ -50,6 +40,7 @@ Exercise 1: Figure out how many tests we have running right now
   AND 
       parameter_name = 'test_id'
 Results: Total 4 tests running now.
+
 
 Exercise 2: Check for potential problems with test assignments. For example Make sure there is no data obviously missing (This is an open ended question)
 
