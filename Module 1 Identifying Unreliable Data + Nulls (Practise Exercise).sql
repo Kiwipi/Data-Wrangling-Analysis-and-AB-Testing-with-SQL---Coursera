@@ -1,8 +1,12 @@
 Exercise 1: Using any methods you like determine if you can you trust this events table.
-    SELECT DATE(event_time) AS DAY, count(*) 
-    FROM dsv1069.events_201701
-    GROUP BY DATE(event_time)
-    ORDER BY DATE(event_time)
+    SELECT 
+        DATE(event_time) AS DAY, count(*) 
+    FROM 
+        dsv1069.events_201701
+    GROUP BY 
+        DATE(event_time)
+    ORDER BY 
+        DATE(event_time)
     --This is the data set for specific month - Jan 2017
 
 
@@ -10,9 +14,12 @@ Exercise 2:
 Using any methods you like, determine if you can you trust this events table. (HINT: When did
 we start recording events on mobile)
 
-    SELECT DATE(event_time),  platform , COUNT(*)
-    FROM dsv1069.events_ex2
-    group by  DATE(event_time), platform
+    SELECT 
+        DATE(event_time),  platform , COUNT(*)
+    FROM 
+        dsv1069.events_ex2
+    group by  
+        DATE(event_time), platform
     --Not Trusted dataset as it's exercise, and mobile web maybe not recorded earlier
 
 
