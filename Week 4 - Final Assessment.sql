@@ -2,9 +2,6 @@ We are running an experiment at an item-level, which means all users who visit w
 
 
 
-
-4. Use the final_assignments table to calculate the view binary, and average views for the 30 day window after the test assignment for item_test_2. (You may include the day the test started)
-
 5. Use the https://thumbtack.github.io/abba/demo/abba.html
  to compute the lifts in metrics and the p-values for the binary metrics ( 30 day order binary and 30 day view binary) using a interval 95% confidence. 
 
@@ -111,3 +108,8 @@ FROM
   ) item_test_2
   GROUP BY 
     test_assignment
+
+4. Use the final_assignments table to calculate the view binary, and average views for the 30 day window after the test assignment for item_test_2. (You may include the day the test started)
+-- Use this table to 
+-- compute view_binary for the 30 day window after the test_start_date
+-- for the test named item_test_2
