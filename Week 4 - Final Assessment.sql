@@ -1,10 +1,5 @@
 We are running an experiment at an item-level, which means all users who visit will see the same page, but the layout of different item pages may differ. Please follow the steps below and good luck!
 
-
-
-6. Use Mode’s Report builder feature to write up the test. Your write-up should include a title, a graph for each of the two binary metrics you’ve calculated. The lift and p-value (from the AB test calculator) for each of the two metrics, and a complete sentence to interpret the significance of each of the results.
-
-
 --We are running an experiment at an item-level, which means all users who visit will see the same page, but the layout of different item pages may differ.
 --Compare this table to the assignment events we captured for user_level_testing.
 --Does this table have everything you need to compute metrics like 30-day view-binary?
@@ -169,3 +164,74 @@ GROUP BY
 
 5. Use the https://thumbtack.github.io/abba/demo/abba.html
  to compute the lifts in metrics and the p-values for the binary metrics ( 30 day order binary and 30 day view binary) using a interval 95% confidence. 
+
+ SELECT 
+  test_number,
+  test_assignment,
+  COUNT(DISTINCT item_id) AS total_items,
+  SUM(view_30d_binary) AS view_binary,
+  SUM (order_binary) AS orders_binary
+FROM 
+(
+  SELECT 
+    order_30d_binary.item_id,
+    order_30d_binary.test_assignment,
+    order_30d_binary.test_number,
+    order_30d_binary.order_binary AS order_binary,
+    MAX (CASE WHEN view_item_events.event_time > order_30d_binary.test_start_date AND 
+                    DATE_PART('day', view_item_events.event_time - order_30d_binary.test_start_date) <= 30 
+                    THEN 1 
+                    ELSE 0 
+                    END ) AS view_30d_binary
+  FROM 
+      (
+      SELECT 
+        final_assignments.item_id,
+        final_assignments.test_assignment,
+        final_assignments.test_number,
+        final_assignments.test_start_date,
+        orders.created_at,
+        MAX (CASE WHEN orders.created_at > final_assignments.test_start_date AND 
+                       DATE_PART('day', orders.created_at - final_assignments.test_start_date) <= 30 
+                       THEN 1 
+                       ELSE 0 
+                       END ) AS order_binary
+      FROM 
+        dsv1069.final_assignments
+      LEFT JOIN 
+        dsv1069.orders
+      ON 
+        orders.item_id = final_assignments.item_id 
+      GROUP BY  
+        final_assignments.item_id,
+        final_assignments.test_assignment,
+        final_assignments.test_number,
+        final_assignments.test_start_date,
+        orders.created_at
+      ) order_30d_binary
+  LEFT JOIN 
+    dsv1069.view_item_events
+  ON 
+    view_item_events.item_id = order_30d_binary.item_id
+  GROUP BY 
+    order_30d_binary.item_id,
+    order_30d_binary.test_assignment,
+    order_30d_binary.test_number,
+    order_30d_binary.order_binary
+  ) view_binary
+GROUP by 
+  test_number,
+  test_assignment
+ORDER BY 
+  test_number ASC 
+
+RESULTS:
+1	item_test_1	0	1112	0	0
+2	item_test_1	1	1086	0	0
+3	item_test_2	0	1130	1262	341
+4	item_test_2	1	1068	1211	319
+5	item_test_3	0	1075	1312	364
+6	item_test_3	1	1123	1336	348
+
+
+6. Use Mode’s Report builder feature to write up the test. Your write-up should include a title, a graph for each of the two binary metrics you’ve calculated. The lift and p-value (from the AB test calculator) for each of the two metrics, and a complete sentence to interpret the significance of each of the results.
