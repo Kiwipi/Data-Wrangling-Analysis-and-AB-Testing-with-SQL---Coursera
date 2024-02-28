@@ -235,3 +235,17 @@ RESULTS:
 
 
 6. Use Mode’s Report builder feature to write up the test. Your write-up should include a title, a graph for each of the two binary metrics you’ve calculated. The lift and p-value (from the AB test calculator) for each of the two metrics, and a complete sentence to interpret the significance of each of the results.
+ 
+My answers: 
+After analyzing the results of the AB Testing tool for item_test_2, the obtained P-value of 0.88 indicates insufficient evidence to support a successful impact from the test assignment. 
+The success rates for both Control and Variant groups are nearly identical, standing at 28%-33% for the Control group and 27%-33% for the Variant group. 
+Unfortunately, the Variant group's success rate doesn't show a significant improvement over the Control group, suggesting minimal real-world impact.
+
+Considering the range of improvement rates from -14% to 12%, it becomes apparent that the negative impact could potentially outweigh any positive effects. 
+ In my opinion, the data does not advocate for implementing a change.
+
+Similar findings are observed for item_test_3, where there is no substantial evidence indicating an increase in orders post-testing. 
+Therefore, the conclusion drawn is that no change is needed.
+
+However, I didn't get the right figures of view binary matric, so I can't make any comment on this.Please comment and give any suggestion. Thank you!
+ 
