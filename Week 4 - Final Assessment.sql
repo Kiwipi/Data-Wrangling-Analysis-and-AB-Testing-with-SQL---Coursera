@@ -62,7 +62,16 @@ SELECT
 FROM 
   dsv1069.final_assignments_qa
 
+--FROM KAT
 
+ SELECT 
+  item_id,
+  test_a       AS test_assignment, 
+  'test_a'     AS test_number, 
+  '2020-01-01' AS test_start_date
+FROM 
+  dsv1069.final_assignments_qa
+ 
 3. Use the final_assignments table to calculate the order binary for the 30 day window after the test assignment for item_test_2 (You may include the day the test started)
 -- Use this table to 
 -- compute order_binary for the 30 day window after the test_start_date
@@ -107,35 +116,64 @@ test_assignment
 0	1130	341
 1	1068	319
 
- -- Don't know why the result figures are not the same, anyone who can explain this?
-
+ -- FROM KAT
+SELECT
+  test_assignment,
+  COUNT(item_id) as items,
+  SUM(order_binary_30d) AS ordered_items_30d
+FROM
+(
+  SELECT 
+   fa.test_assignment,
+   fa.item_id, 
+   MAX(CASE WHEN orders.created_at > fa.test_start_date THEN 1 ELSE 0 END)  AS order_binary_30d
+  FROM 
+    dsv1069.final_assignments fa
+    
+  LEFT OUTER JOIN
+    dsv1069.orders
+  ON 
+    fa.item_id = orders.item_id 
+  AND 
+    orders.created_at >= fa.test_start_date
+  AND 
+    DATE_PART('day', orders.created_at - fa.test_start_date ) <= 30
+  WHERE 
+    fa.test_number= 'item_test_2'
+  GROUP BY
+    fa.test_assignment,
+    fa.item_id
+) item_level
+GROUP BY test_assignment
+        
 4. Use the final_assignments table to calculate the view binary, and average views for the 30 day window after the test assignment for item_test_2. (You may include the day the test started)
 -- Use this table to 
 -- compute view_binary for the 30 day window after the test_start_date
 -- for the test named item_test_2
 
-SELECT 
+ SELECT  
   test_assignment,
-  COUNT(DISTINCT item_id) AS total_items,
-  SUM (view_binary ) AS total_views,
-  AVG(view_binary ) AS avg_views
-FROM 
+  COUNT(item_id) AS total_items,
+  SUM(view_30d_binary) AS viewed_items,
+  SUM(views) AS total_views,
+  CAST (100*SUM(view_30d_binary)/ COUNT(item_id) AS FLOAT) AS viewed_percentage,
+  SUM(views)/COUNT(item_id) AS avg_views_per_item
+FROM
 (
   SELECT 
       final_assignments.item_id,
       final_assignments.test_assignment,
-      final_assignments.test_number,
-      MAX (CAST(CASE 
-          WHEN (view_item.event_time > final_assignments.test_start_date AND 
-                  DATE_PART('day', view_item.event_time - final_assignments.test_start_date) <=30 )
-          THEN 1 
-          ELSE 0 
-          END AS INT) )AS view_binary
+      COUNT(view_item.event_id) AS views,
+      MAX(CASE WHEN view_item.event_time >= final_assignments.test_start_date 
+                THEN 1
+                ELSE 0
+                END ) AS view_30d_binary
     FROM 
       dsv1069.final_assignments 
   LEFT JOIN 
   (  
       SELECT 
+        event_id,
         event_time,
         (CASE WHEN parameter_name= 'item_id' THEN CAST (parameter_value AS INT) ELSE NULL END ) AS item_id
       FROM 
@@ -145,107 +183,190 @@ FROM
   ) view_item
   ON 
     view_item.item_id = final_assignments.item_id
+  AND 
+    view_item.event_time >= final_assignments.test_start_date 
+  AND 
+    DATE_part('day', view_item.event_time - final_assignments.test_start_date ) <=30
   WHERE
     final_assignments.test_number = 'item_test_2'
   GROUP BY 
     final_assignments.item_id,
-    final_assignments.test_assignment,
-    final_assignments.test_number
-  ORDER BY 
-    final_assignments.item_id 
-    ) view_binary
+    final_assignments.test_assignment
+) view_binary
 GROUP BY 
   test_assignment
 
- RESULTS:
-0	1130	918	0.8124
-1	1068	890	0.8333
+0	1130	918	1916	81	1.6956
+1	1068	890	1862	83	1.7434
 
 
+ --FROM KAT
+ SELECT
+test_assignment,
+COUNT(item_id) AS items,
+SUM(view_binary_30d) AS viewed_items,
+CAST(100*SUM(view_binary_30d)/COUNT(item_id) AS FLOAT) AS viewed_percent,
+SUM(views) AS views,
+SUM(views)/COUNT(item_id) AS average_views_per_item
+FROM 
+(
+ SELECT 
+   fa.test_assignment,
+   fa.item_id, 
+   MAX(CASE WHEN views.event_time > fa.test_start_date THEN 1 ELSE 0 END)  AS view_binary_30d,
+   COUNT(views.event_id) AS views
+  FROM 
+    dsv1069.final_assignments fa
+    
+  LEFT OUTER JOIN 
+    (
+    SELECT 
+      event_time,
+      event_id,
+      CAST(parameter_value AS INT) AS item_id
+    FROM 
+      dsv1069.events 
+    WHERE 
+      event_name = 'view_item'
+    AND 
+      parameter_name = 'item_id'
+    ) views
+  ON 
+    fa.item_id = views.item_id
+  AND 
+    views.event_time >= fa.test_start_date
+  AND 
+    DATE_PART('day', views.event_time - fa.test_start_date ) <= 30
+  WHERE 
+    fa.test_number= 'item_test_2'
+  GROUP BY
+    fa.test_assignment,
+    fa.item_id
+) item_level
+GROUP BY 
+ test_assignment
+ 
 5. Use the https://thumbtack.github.io/abba/demo/abba.html
  to compute the lifts in metrics and the p-values for the binary metrics ( 30 day order binary and 30 day view binary) using a interval 95% confidence. 
 
- SELECT 
-  test_number,
+SELECT 
   test_assignment,
-  COUNT(DISTINCT item_id) AS total_items,
-  SUM(view_30d_binary) AS view_binary,
-  SUM (order_binary) AS orders_binary
+  COUNT(item_id) AS total_items,
+  SUM(view_binary) AS viewed_items,
+  SUM(orderS_30d_binary) AS orders_30d
 FROM 
 (
-  SELECT 
-    order_30d_binary.item_id,
-    order_30d_binary.test_assignment,
-    order_30d_binary.test_number,
-    order_30d_binary.order_binary AS order_binary,
-    MAX (CASE WHEN view_item_events.event_time > order_30d_binary.test_start_date AND 
-                    DATE_PART('day', view_item_events.event_time - order_30d_binary.test_start_date) <= 30 
-                    THEN 1 
-                    ELSE 0 
-                    END ) AS view_30d_binary
-  FROM 
-      (
+    SELECT 
+      test_assignment,
+      view_binary.item_id,
+      view_binary, 
+      MAX(CASE WHEN orders.created_at >= view_binary.test_start_date 
+              THEN 1
+              ELSE 0
+              END) AS orderS_30d_binary
+    FROM 
+    (
       SELECT 
-        final_assignments.item_id,
-        final_assignments.test_assignment,
-        final_assignments.test_number,
-        final_assignments.test_start_date,
-        orders.created_at,
-        MAX (CASE WHEN orders.created_at > final_assignments.test_start_date AND 
-                       DATE_PART('day', orders.created_at - final_assignments.test_start_date) <= 30 
-                       THEN 1 
-                       ELSE 0 
-                       END ) AS order_binary
-      FROM 
-        dsv1069.final_assignments
+          final_assignments.item_id,
+          final_assignments.test_assignment,
+          final_assignments.test_number,
+          final_assignments.test_start_date,
+          MAX (CASE 
+                WHEN view_item.event_time > final_assignments.test_start_date 
+              THEN 1 
+              ELSE 0 
+              END )AS view_binary
+        FROM 
+          dsv1069.final_assignments 
       LEFT JOIN 
-        dsv1069.orders
+      (  
+          SELECT 
+            event_id,
+            event_time,
+            (CASE WHEN parameter_name= 'item_id' THEN CAST (parameter_value AS INT) ELSE NULL END ) AS item_id
+          FROM 
+            dsv1069.events 
+          WHERE 
+            event_name = 'view_item'
+      ) view_item
       ON 
-        orders.item_id = final_assignments.item_id 
-      GROUP BY  
+        view_item.item_id = final_assignments.item_id
+      AND view_item.event_time >= final_assignments.test_start_date 
+      AND DATE_PART('day', view_item.event_time - final_assignments.test_start_date ) <30
+      WHERE
+        final_assignments.test_number = 'item_test_2'
+      GROUP BY 
         final_assignments.item_id,
         final_assignments.test_assignment,
         final_assignments.test_number,
-        final_assignments.test_start_date,
-        orders.created_at
-      ) order_30d_binary
-  LEFT JOIN 
-    dsv1069.view_item_events
-  ON 
-    view_item_events.item_id = order_30d_binary.item_id
-  GROUP BY 
-    order_30d_binary.item_id,
-    order_30d_binary.test_assignment,
-    order_30d_binary.test_number,
-    order_30d_binary.order_binary
-  ) view_binary
-GROUP by 
-  test_number,
+        final_assignments.test_start_date
+      ORDER BY 
+        final_assignments.item_id 
+        ) view_binary
+    LEFT JOIN 
+      dsv1069.orders
+    ON orders.item_id = view_binary.item_id
+    AND orders.created_at >= view_binary.test_start_date 
+    AND DATE_PART('day', orders.created_at - view_binary.test_start_date  ) <30
+    WHERE view_binary.test_number = 'item_test_2'
+    GROUP BY 
+      test_assignment,
+      view_binary.item_id,
+      view_binary 
+) view_N_order_binary
+GROUP BY 
   test_assignment
-ORDER BY 
-  test_number ASC 
 
-RESULTS:
-1	item_test_1	0	1112	0	0
-2	item_test_1	1	1086	0	0
-3	item_test_2	0	1130	1262	341
-4	item_test_2	1	1068	1211	319
-5	item_test_3	0	1075	1312	364
-6	item_test_3	1	1123	1336	348
+0	1130	909	332
+1	1068	878	297
 
 
+ --FROM KAT 
+SELECT
+test_assignment,
+COUNT(item_id) AS items,
+SUM(view_binary_30d) AS viewed_items
+FROM 
+(
+ SELECT 
+   fa.test_assignment,
+   fa.item_id, 
+   MAX(CASE WHEN views.event_time > fa.test_start_date THEN 1 ELSE 0 END)  AS view_binary_30d
+  FROM 
+    dsv1069.final_assignments fa
+    
+  LEFT OUTER JOIN 
+    (
+    SELECT 
+      event_time, 
+      CAST(parameter_value AS INT) AS item_id
+    FROM 
+      dsv1069.events 
+    WHERE 
+      event_name = 'view_item'
+    AND 
+      parameter_name = 'item_id'
+    ) views
+  ON 
+    fa.item_id = views.item_id
+  AND 
+    views.event_time >= fa.test_start_date
+  AND 
+    DATE_PART('day', views.event_time - fa.test_start_date ) <= 30
+  WHERE 
+    fa.test_number= 'item_test_2'
+  GROUP BY
+    fa.test_assignment,
+    fa.item_id
+) item_level
+GROUP BY 
+ test_assignment
+        
+ 
 6. Use Mode’s Report builder feature to write up the test. Your write-up should include a title, a graph for each of the two binary metrics you’ve calculated. The lift and p-value (from the AB test calculator) for each of the two metrics, and a complete sentence to interpret the significance of each of the results.
  
 My answers: 
-After analyzing the results of the AB Testing tool for item_test_2, the obtained P-value of 0.88 indicates insufficient evidence to support a successful impact from the test assignment. 
-The success rates for both Control and Variant groups are nearly identical, standing at 28%-33% for the Control group and 27%-33% for the Variant group. 
-Unfortunately, the Variant group's success rate doesn't show a significant improvement over the Control group, suggesting minimal real-world impact.
+After analyzing the results of the AB Testing tool for item_test_2 view metric, the obtained P-value of 0.29 indicates insufficient evidence to reject NULL hypothesis.
+The success rates for Variant groups is 2% higner than Control Group, the improvement rate of Treament geoup is -1.9% - 6.2%, it seems the new change will bring a great positive impact to bring more viewers. 
 
-Considering the range of improvement rates from -14% to 12%, it becomes apparent that the negative impact could potentially outweigh any positive effects. 
- In my opinion, the data does not advocate for implementing a change.
-
-Similar findings are observed for item_test_3, where there is no substantial evidence indicating an increase in orders post-testing. 
-Therefore, the conclusion drawn is that no change is needed.
-
-However, I didn't get the right figures of view binary matric, so I can't make any comment on this.Please comment and give any suggestion. Thank you!
  
